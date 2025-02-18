@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+version="$1"
+image_path="$2"
+dirname=`dirname $image_path`
+
+[ -n "$version" ] || exit 0
+[ -n "$image_path" ] || exit 0
+
+systemd_stub="/usr/lib/systemd/boot/efi/linuxriscv64.efi.stub.noinitrd"
+dtb_files=$(find /lib/firmware/"$version"/device-tree -type f -name '*.dtb')
+
+ukify_cmd="sudo ukify build --linux=$image_path --stub=$systemd_stub  --uname=${version}"
+for dtb in $dtb_files; do
+    ukify_cmd="$ukify_cmd --devicetree-auto=${dtb}"
+done
+ukify_cmd="$ukify_cmd --output=${dirname}/uki-${version}"
+echo "Running: $ukify_cmd"
+eval "$ukify_cmd"
+
+exit 0
