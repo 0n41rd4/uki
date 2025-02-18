@@ -1,0 +1,36 @@
+#!/bin/sh
+set -e
+
+version="$1"
+image_path="$2"
+dirname=`dirname $image_path`
+
+[ -n "$version" ] || exit 0
+[ -n "$image_path" ] || exit 0
+
+initrd=""
+for i in "initrd.img-${version}" "initrd-${version}.img" \
+         "initrd-${version}.gz" "initrd-${version}" \
+         "initramfs-${version}.img" \
+         "initramfs-genkernel-${version}"; do
+    if [ -e "${dirname}/${i}" ]; then
+        initrd="${i}"
+        break
+    fi
+done
+
+if [ -z "$initrd" ]; then
+    exit 1
+fi
+
+dtb_files=$(find /lib/firmware/"$version"/device-tree -type f -name '*.dtb')
+
+ukify_cmd="sudo ukify build --linux=$image_path --uname=${version} --initrd=${dirname}/${initrd}"
+for dtb in $dtb_files; do
+    ukify_cmd="$ukify_cmd --devicetree-auto=${dtb}"
+done
+ukify_cmd="$ukify_cmd --output=${dirname}/uki-${version}.efi"
+echo "Running: $ukify_cmd"
+eval "$ukify_cmd"
+
+exit 0
